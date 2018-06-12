@@ -1,64 +1,115 @@
 #!/usr/bin/env node
-// console.log(process.argv)
 // 引入模块
 const exec = require('child_process').exec;
 const program = require('commander')
 const figlet = require('figlet');
-const levelup = require('levelup')
-const leveldown = require('leveldown')
+const chalk = require('chalk');
+const shell = require('shelljs');
+
+const db = require('./db');
 
 const VERSION = '0.1.0';
-figlet('easy-open', function(err, data) {
-	if (err) {
-			console.log('Something went wrong...');
-			console.dir(err);
-			return;
-	}
-	console.log(data)
-});
+const APPNAME = 'mark'
+
 // show available commands
 program
-  .command('exec <sortName> <originSite>')
-  .alias('ex')
-  .description('execute the given remote cmd')
-  .option("-e, --exec_mode <mode>", "Which exec mode to use")
-  .action(function(sortName, originSite){
-    console.log('exec "%s" using %s mode', sortName, originSite);
+  .command('add <sortName> <originSite>')
+  .alias('a')
+  .description('add the the origin-site alias sort-name')
+  .action(async function (sortName, originSite){
+    try{
+      await db.put(sortName, originSite)
+      console.log(`add site ${originSite} alias ${sortName} successfully~`)
+    }catch(err) {
+      console.log(chalk.red('add site failed~ try again!'))
+    }
+
   }).on('--help', function() {
     console.log('  Examples:');
     console.log();
-    console.log('    $ deploy exec sequential');
-    console.log('    $ deploy exec async');
+    console.log('    $ show add wiki http://wiki.org');
     console.log();
   });
+  program
+  .command('del <sortName>')
+  .alias('d')
+  .description('delete the the origin-site by sort-name')
+  .action(async function (sortName){
+    try{
+      const site = await db.del(sortName)
+      console.log(`delete site ${sortName} successfully~`)
+    }catch(err) {
+      console.log(chalk.red('delete site failed~ try again!'))
+    }
 
+  }).on('--help', function() {
+    console.log('  Examples:');
+    console.log();
+    console.log('    $ show delete wiki');
+    console.log();
+  });
+  // open one site by sort-name
+  program
+  .command('open <sortName>')
+  .alias('o')
+  .description('open one site by sort-name')
+  .action(async function (sortName){
+    try{
+      let site = await db.get(sortName);
+      site = site.toString();
+      if((/^https?:\/\//ig).test(site)) {
+        console.log('open site: ',chalk.green(`${site}`))
+        shell.exec(`open ${site}`)
+      } else {
+        shell.exec(`echo ${site}`)
+      }
+      
+    }catch(err) {
+      console.log(chalk.yellow(`can not find the site of named 【${chalk.red(sortName)}】~`))
+    }
+
+  }).on('--help', function() {
+    console.log('  Examples:');
+    console.log();
+    console.log('    $ show open|o wiki');
+    console.log();
+  });
+// show all the list
+  program
+  .command('list [type]')
+  .alias('l')
+  .description('list all the list')
+  .action(async function (type){
+    try{
+      db.createReadStream()
+        .on('data', function (data) {
+          console.log(chalk.greenBright(data.key.toString()), 
+            ':', chalk.blueBright(data.value.toString()))
+        })
+    }catch(err) {
+      console.log(chalk.yellow('find sites failed~'))
+    }
+
+  }).on('--help', function() {
+    console.log('  Examples:');
+    console.log();
+    console.log('    $ show list|l');
+    console.log();
+  });
 program.parse(process.argv);
 if(program.args.length === 0) {
-	program.help();
+  program.help();
 }
-if(program.add) {
-	console.log('add', program.args);
-	
+
+/**
+ * 展现工具名称
+ */
+function showName () {
+  figlet(APPNAME, function(err, data) {
+    if (err) {
+      console.log('err show name~')
+      return;
+    }
+    console.log(data)
+  });
 }
-// 1) Create our store
-const db = levelup(leveldown('./mydb'))
-// 3) Fetch by key
-db.get('name', function (err, value) {
-	if (err) return console.log('Ooops!', err) // likely the key was not found
-
-	// Ta da!
-	console.log('name=' + value)
-})
-// // 2) Put a key & value
-// db.put('name', 'levelup', function (err) {
-//   if (err) return console.log('Ooops!', err) // some kind of I/O error
-
-//   // 3) Fetch by key
-//   db.get('name', function (err, value) {
-//     if (err) return console.log('Ooops!', err) // likely the key was not found
-
-//     // Ta da!
-//     console.log('name=' + value)
-//   })
-// })
-
