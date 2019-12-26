@@ -32,13 +32,11 @@ fs.writeFileSync(path.join(workdir, packgeFile), JSON.stringify(packageContent),
 
 shell.echo('==========安装非u51依赖=========');
 // step5 执行npm i --registry=http://npm.u51-inc.com/
-if(shell.exec('npm i') == 0) {
-    // step6 恢复package.json 执行 npm i
-    shell.echo('==========添加u51依赖=========');
-    shell.exec(`mv ${path.join(workdir, packgeBakFile)}, ${path.join(workdir, packgeFile)}`);
-    shell.echo('==========安装u51依赖=========');
-    if(shell.exec('npm i --registry=http://npm.u51-inc.com/') == 0) {
-        shell.echo('Nice! Everything is ok!');
-    }
+shell.exec('npm i')
+// step6 恢复package.json 执行 npm i
+shell.echo('==========添加u51依赖=========');
+shell.exec(`mv ${path.join(workdir, packgeBakFile)} ${path.join(workdir, packgeFile)}`);
+shell.echo('==========安装u51依赖=========');
+if(shell.exec('npm i --registry=http://npm.u51-inc.com/') == 0) {
+    shell.echo('Nice! Everything is ok!');
 }
-
